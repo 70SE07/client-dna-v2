@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ДНК Клиента — Пайплайн</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0d1117;
+            color: #c9d1d9;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            padding: 40px 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #58a6ff;
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #8b949e;
+            font-size: 14px;
+            margin-bottom: 40px;
+        }
+        .section {
+            max-width: 1200px;
+            margin: 0 auto 60px;
+        }
+        .section h2 {
+            color: #f0883e;
+            font-size: 18px;
+            margin-bottom: 6px;
+            padding-left: 4px;
+        }
+        .section .desc {
+            color: #8b949e;
+            font-size: 13px;
+            margin-bottom: 20px;
+            padding-left: 4px;
+        }
+        .mermaid {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 30px 20px;
+            overflow-x: auto;
+        }
+        .legend {
+            max-width: 1200px;
+            margin: 0 auto 40px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+        }
+        .legend-item {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 12px 16px;
+            font-size: 13px;
+        }
+        .legend-item .label {
+            color: #58a6ff;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .legend-item .value {
+            color: #8b949e;
+        }
+    </style>
+</head>
+<body>
+
+<h1>ДНК Клиента v2 — Пайплайн</h1>
+<p class="subtitle">Визуализация потоков, модулей и user cases</p>
+
+<div class="legend">
+    <div class="legend-item">
+        <div class="label">ЦКП системы</div>
+        <div class="value">Готовый оффер (или матрица офферов) для рекламы, лендинга, воронки</div>
+    </div>
+    <div class="legend-item">
+        <div class="label">Вход</div>
+        <div class="value">От темы/ниши (ноль данных) до сырых данных (кастдевы, отзывы)</div>
+    </div>
+    <div class="legend-item">
+        <div class="label">Выход</div>
+        <div class="value">Документ-фундамент: ЦА + боли + барьеры + трансформация + триггеры + оффер(ы)</div>
+    </div>
+    <div class="legend-item">
+        <div class="label">Режимы</div>
+        <div class="value">Автоматический / Управляемый / Гибрид</div>
+    </div>
+</div>
+
+<!-- Диаграмма 1: Основной пайплайн -->
+<div class="section">
+    <h2>1. Основной пайплайн</h2>
+    <p class="desc">Три модуля. Выход одного = вход следующего. ЦКП — оффер.</p>
+    <div class="mermaid">
+flowchart LR
+    subgraph IN["ВХОД"]
+        A1["Тема / ниша<br/><small>ноль данных</small>"]
+        A2["Продукт + понимание ЦА<br/><small>устные ответы</small>"]
+        A3["Сырые данные<br/><small>кастдевы, отзывы, CSV</small>"]
+        A4["Существующий ДНК<br/><small>файлы с прошлого анализа</small>"]
+    end
+
+    subgraph PIPE["ПАЙПЛАЙН"]
+        B["collect_context<br/>─────────────<br/>ЦКП: валидированные<br/>данные о бизнесе"]
+        C["enrich_dna<br/>─────────────<br/>ЦКП: обогащённый<br/>контекст ЦА"]
+        D["build_offer<br/>─────────────<br/>ЦКП: готовый оффер"]
+    end
+
+    subgraph OUT["ВЫХОД"]
+        E["Документ-фундамент<br/>+ оффер(ы)"]
+    end
+
+    A1 --> B
+    A2 --> B
+    A3 --> B
+    A4 --> B
+    B -->|"JSON контекст"| C
+    C -->|"JSON ДНК"| D
+    D --> E
+
+    style IN fill:#1a1e2e,stroke:#30363d,color:#c9d1d9
+    style PIPE fill:#1a2e1a,stroke:#30363d,color:#c9d1d9
+    style OUT fill:#2e1a1a,stroke:#30363d,color:#c9d1d9
+    style B fill:#1f6feb,stroke:#1f6feb,color:#fff
+    style C fill:#1f6feb,stroke:#1f6feb,color:#fff
+    style D fill:#1f6feb,stroke:#1f6feb,color:#fff
+    style E fill:#f0883e,stroke:#f0883e,color:#fff
+    </div>
+</div>
+
+<!-- Диаграмма 2: Внутренности enrich_dna -->
+<div class="section">
+    <h2>2. Внутри модуля enrich_dna</h2>
+    <p class="desc">5 операций (Part 1-5). Каждая обогащает контекст для следующей. Снаружи — чёрный ящик.</p>
+    <div class="mermaid">
+flowchart TB
+    CTX["Контекст бизнеса<br/><small>от collect_context</small>"]
+
+    CTX --> P1
+
+    subgraph DNA["enrich_dna (чёрный ящик)"]
+        P1["Part 1: Идентичность<br/><small>кто этот человек</small>"]
+        P2["Part 2: Боли и страхи<br/><small>что у него болит</small>"]
+        P3["Part 3: Барьеры и мифы<br/><small>почему он застрял</small>"]
+        P4["Part 4: Трансформация<br/><small>что он хочет получить</small>"]
+        P5["Part 5: Триггеры<br/><small>что толкает купить сейчас</small>"]
+    end
+
+    P1 -->|"+идентичность"| P2
+    P2 -->|"+боли"| P3
+    P3 -->|"+барьеры"| P4
+    P4 -->|"+трансформация"| P5
+
+    P5 --> OUT["Полный ДНК<br/><small>→ build_offer</small>"]
+
+    style DNA fill:#1a2e1a,stroke:#238636,color:#c9d1d9
+    style CTX fill:#1f6feb,stroke:#1f6feb,color:#fff
+    style OUT fill:#f0883e,stroke:#f0883e,color:#fff
+    style P1 fill:#238636,stroke:#238636,color:#fff
+    style P2 fill:#238636,stroke:#238636,color:#fff
+    style P3 fill:#238636,stroke:#238636,color:#fff
+    style P4 fill:#238636,stroke:#238636,color:#fff
+    style P5 fill:#238636,stroke:#238636,color:#fff
+    </div>
+</div>
+
+<!-- Диаграмма 3: User Cases -->
+<div class="section">
+    <h2>3. User Cases — кто приходит и с чем</h2>
+    <p class="desc">6 сценариев входа в систему. Все ведут к одному ЦКП — офферу.</p>
+    <div class="mermaid">
+flowchart TB
+    subgraph USERS["ПОЛЬЗОВАТЕЛИ"]
+        UC1["<b>UC-1:</b> Полный анализ<br/><small>знает продукт + примерно ЦА</small>"]
+        UC2["<b>UC-2:</b> Углубление части<br/><small>получил оффер, хочет уточнить</small>"]
+        UC3["<b>UC-3:</b> Матрица сегментов<br/><small>хочет несколько офферов</small>"]
+        UC4["<b>UC-4:</b> Старт с нуля<br/><small>только тема, ноль данных</small>"]
+        UC5["<b>UC-5:</b> Доработка ДНК<br/><small>тест не сработал, итерация</small>"]
+        UC6["<b>UC-6:</b> На основе данных<br/><small>кастдевы, отзывы, CSV</small>"]
+    end
+
+    subgraph SYSTEM["СИСТЕМА"]
+        CC["collect_context"]
+        ED["enrich_dna"]
+        BO["build_offer"]
+    end
+
+    OFFER["ОФФЕР(Ы)<br/>документ-фундамент"]
+
+    UC1 --> CC
+    UC3 --> CC
+    UC4 --> CC
+    UC6 --> CC
+    UC2 --> ED
+    UC5 --> ED
+
+    CC --> ED --> BO --> OFFER
+
+    OFFER -.->|"не устроило →<br/>покопать глубже"| UC2
+    OFFER -.->|"тест провалился →<br/>итерация"| UC5
+
+    style USERS fill:#1a1e2e,stroke:#30363d,color:#c9d1d9
+    style SYSTEM fill:#1a2e1a,stroke:#30363d,color:#c9d1d9
+    style CC fill:#1f6feb,stroke:#1f6feb,color:#fff
+    style ED fill:#1f6feb,stroke:#1f6feb,color:#fff
+    style BO fill:#1f6feb,stroke:#1f6feb,color:#fff
+    style OFFER fill:#f0883e,stroke:#f0883e,color:#fff
+    style UC1 fill:#238636,stroke:#238636,color:#fff
+    style UC2 fill:#da3633,stroke:#da3633,color:#fff
+    style UC3 fill:#238636,stroke:#238636,color:#fff
+    style UC4 fill:#da3633,stroke:#da3633,color:#fff
+    style UC5 fill:#da3633,stroke:#da3633,color:#fff
+    style UC6 fill:#da3633,stroke:#da3633,color:#fff
+    </div>
+</div>
+
+<!-- Диаграмма 4: Гибридный режим -->
+<div class="section">
+    <h2>4. Гибридный режим</h2>
+    <p class="desc">Пользователь всегда начинает с результата. Глубина — по необходимости.</p>
+    <div class="mermaid">
+flowchart LR
+    START["Запрос<br/>пользователя"] --> AUTO["Автоматический<br/>пайплайн"]
+    AUTO --> OFFER["Оффер"]
+
+    OFFER --> CHECK{"Устраивает?"}
+    CHECK -->|"Да"| DONE["Готово.<br/>Документ сохранён"]
+    CHECK -->|"Нет"| DIG["Углубиться<br/>в конкретную часть"]
+
+    DIG --> P1["Part 1<br/>Кто клиент?"]
+    DIG --> P2["Part 2<br/>Что болит?"]
+    DIG --> P3["Part 3<br/>Почему застрял?"]
+    DIG --> P4["Part 4<br/>Чего хочет?"]
+    DIG --> P5["Part 5<br/>Что толкает?"]
+
+    P1 --> REBUILD["Пересборка<br/>оффера"]
+    P2 --> REBUILD
+    P3 --> REBUILD
+    P4 --> REBUILD
+    P5 --> REBUILD
+    REBUILD --> OFFER
+
+    style START fill:#8b949e,stroke:#8b949e,color:#fff
+    style AUTO fill:#1f6feb,stroke:#1f6feb,color:#fff
+    style OFFER fill:#f0883e,stroke:#f0883e,color:#fff
+    style DONE fill:#238636,stroke:#238636,color:#fff
+    style CHECK fill:#d29922,stroke:#d29922,color:#fff
+    style DIG fill:#da3633,stroke:#da3633,color:#fff
+    style REBUILD fill:#1f6feb,stroke:#1f6feb,color:#fff
+    style P1 fill:#238636,stroke:#238636,color:#fff
+    style P2 fill:#238636,stroke:#238636,color:#fff
+    style P3 fill:#238636,stroke:#238636,color:#fff
+    style P4 fill:#238636,stroke:#238636,color:#fff
+    style P5 fill:#238636,stroke:#238636,color:#fff
+    </div>
+</div>
+
+<!-- Диаграмма 5: Матрица сегментов -->
+<div class="section">
+    <h2>5. Режим «Матрица сегментов»</h2>
+    <p class="desc">1 сегмент → 1 боль → 1 микро-ДНК → 1 оффер. Каждый оффер — отдельная точка входа в рекламе.</p>
+    <div class="mermaid">
+flowchart TB
+    BIZ["Контекст бизнеса"] --> SEG["Сегментация<br/>3-5 аватаров"]
+
+    SEG --> S1["Сегмент 1"]
+    SEG --> S2["Сегмент 2"]
+    SEG --> S3["Сегмент 3"]
+
+    S1 --> B1A["Боль 1.1"]
+    S1 --> B1B["Боль 1.2"]
+    S1 --> B1C["Боль 1.3"]
+
+    S2 --> B2A["Боль 2.1"]
+    S2 --> B2B["Боль 2.2"]
+    S2 --> B2C["Боль 2.3"]
+
+    S3 --> B3A["Боль 3.1"]
+    S3 --> B3B["Боль 3.2"]
+    S3 --> B3C["Боль 3.3"]
+
+    B1A --> D1A["микро-ДНК → Оффер 1"]
+    B1B --> D1B["микро-ДНК → Оффер 2"]
+    B1C --> D1C["микро-ДНК → Оффер 3"]
+
+    B2A --> D2A["микро-ДНК → Оффер 4"]
+    B2B --> D2B["микро-ДНК → Оффер 5"]
+    B2C --> D2C["микро-ДНК → Оффер 6"]
+
+    B3A --> D3A["микро-ДНК → Оффер 7"]
+    B3B --> D3B["микро-ДНК → Оффер 8"]
+    B3C --> D3C["микро-ДНК → Оффер 9"]
+
+    style BIZ fill:#1f6feb,stroke:#1f6feb,color:#fff
+    style SEG fill:#1f6feb,stroke:#1f6feb,color:#fff
+    style S1 fill:#238636,stroke:#238636,color:#fff
+    style S2 fill:#238636,stroke:#238636,color:#fff
+    style S3 fill:#238636,stroke:#238636,color:#fff
+    style B1A fill:#d29922,stroke:#d29922,color:#fff
+    style B1B fill:#d29922,stroke:#d29922,color:#fff
+    style B1C fill:#d29922,stroke:#d29922,color:#fff
+    style B2A fill:#d29922,stroke:#d29922,color:#fff
+    style B2B fill:#d29922,stroke:#d29922,color:#fff
+    style B2C fill:#d29922,stroke:#d29922,color:#fff
+    style B3A fill:#d29922,stroke:#d29922,color:#fff
+    style B3B fill:#d29922,stroke:#d29922,color:#fff
+    style B3C fill:#d29922,stroke:#d29922,color:#fff
+    style D1A fill:#f0883e,stroke:#f0883e,color:#fff
+    style D1B fill:#f0883e,stroke:#f0883e,color:#fff
+    style D1C fill:#f0883e,stroke:#f0883e,color:#fff
+    style D2A fill:#f0883e,stroke:#f0883e,color:#fff
+    style D2B fill:#f0883e,stroke:#f0883e,color:#fff
+    style D2C fill:#f0883e,stroke:#f0883e,color:#fff
+    style D3A fill:#f0883e,stroke:#f0883e,color:#fff
+    style D3B fill:#f0883e,stroke:#f0883e,color:#fff
+    style D3C fill:#f0883e,stroke:#f0883e,color:#fff
+    </div>
+</div>
+
+<!-- Диаграмма 6: Триада (Config / Client / Storage) -->
+<div class="section">
+    <h2>6. Инфраструктурная триада (MCP-сервер)</h2>
+    <p class="desc">Одна причина для изменения — один файл.</p>
+    <div class="mermaid">
+flowchart TB
+    subgraph TRIADA["Триада"]
+        CFG["<b>Config</b><br/>промпты из MD-файлов<br/>модель, температура, язык<br/><small>поменял промпт → трогаешь только config</small>"]
+        CLI["<b>Client</b><br/>Claude API<br/>вызовы, ретраи, стриминг<br/><small>обновился API → трогаешь только client</small>"]
+        STR["<b>Storage</b><br/>сохранение результатов<br/>файлы → Supabase (потом)<br/><small>сменил хранилище → трогаешь только storage</small>"]
+    end
+
+    subgraph TOOLS["MCP Tools"]
+        T1["collect_context"]
+        T2["enrich_dna"]
+        T3["build_offer"]
+        T4["segment_matrix"]
+    end
+
+    CFG --> T1
+    CFG --> T2
+    CFG --> T3
+    CFG --> T4
+    CLI --> T1
+    CLI --> T2
+    CLI --> T3
+    CLI --> T4
+    T1 --> STR
+    T2 --> STR
+    T3 --> STR
+    T4 --> STR
+
+    style TRIADA fill:#1a1e2e,stroke:#30363d,color:#c9d1d9
+    style TOOLS fill:#1a2e1a,stroke:#30363d,color:#c9d1d9
+    style CFG fill:#d29922,stroke:#d29922,color:#fff
+    style CLI fill:#1f6feb,stroke:#1f6feb,color:#fff
+    style STR fill:#238636,stroke:#238636,color:#fff
+    style T1 fill:#8b949e,stroke:#8b949e,color:#fff
+    style T2 fill:#8b949e,stroke:#8b949e,color:#fff
+    style T3 fill:#8b949e,stroke:#8b949e,color:#fff
+    style T4 fill:#8b949e,stroke:#8b949e,color:#fff
+    </div>
+</div>
+
+<script>
+    mermaid.initialize({
+        startOnLoad: true,
+        theme: 'dark',
+        themeVariables: {
+            darkMode: true,
+            background: '#161b22',
+            primaryColor: '#1f6feb',
+            primaryTextColor: '#fff',
+            lineColor: '#58a6ff',
+            fontSize: '14px'
+        },
+        flowchart: {
+            htmlLabels: true,
+            curve: 'basis',
+            padding: 20,
+            nodeSpacing: 30,
+            rankSpacing: 50
+        }
+    });
+</script>
+</body>
+</html>
